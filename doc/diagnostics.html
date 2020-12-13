@@ -10,87 +10,69 @@ set fixed-width phrases with non-fixed-width spaces, as in
 Do not send CLs removing the interior tags from such phrases.
 -->
 
-<h2 id="introduction">Introduction</h2>
+<h2 id="introduction">介绍</h2>
 
 <p>
-The Go ecosystem provides a large suite of APIs and tools to
-diagnose logic and performance problems in Go programs. This page
-summarizes the available tools and helps Go users pick the right one
-for their specific problem.
+Go 生态系统提供了一系列 API 和工具来诊断 Go 程序中的逻辑问题和性能问题。
+本页面总结了可用的工具， 并帮助 Go 用户选择合适的工具来处理他们的特定问题。
 </p>
 
 <p>
-Diagnostics solutions can be categorized into the following groups:
+诊断方案可以被归类为以下几个类型：
 </p>
 
 <ul>
-<li><strong>Profiling</strong>: Profiling tools analyze the complexity and costs of a
-Go program such as its memory usage and frequently called
-functions to identify the expensive sections of a Go program.</li>
-<li><strong>Tracing</strong>: Tracing is a way to instrument code to analyze latency
-throughout the lifecycle of a call or user request. Traces provide an
-overview of how much latency each component contributes to the overall
-latency in a system. Traces can span multiple Go processes.</li>
-<li><strong>Debugging</strong>: Debugging allows us to pause a Go program and examine
-its execution. Program state and flow can be verified with debugging.</li>
-<li><strong>Runtime statistics and events</strong>: Collection and analysis of runtime stats and events
-provides a high-level overview of the health of Go programs. Spikes/dips of metrics
-helps us to identify changes in throughput, utilization, and performance.</li>
+<li><strong>Profiling</strong>: Profiling 工具分析 Go 程序的复杂性和成本， 例如其使用的内存和
+频繁调用的函数， 来识别出这个 Go 程序中代价高昂的部分。</li>
+<li><strong>跟踪</strong>: 跟踪是一种检测代码的方法， 可用于分析在一次函数调用或用户请求的整个生命周期中的时延。
+跟踪结果为一个系统中的每个组件对总时延的贡献提供了概览。 跟踪可以跨越多个 Go 进程。 </li>
+<li><strong>调试</strong>: 调试允许我们暂停一个 Go 程序并检查其执行情况。 程序状态和流程可以通过调试来确认。</li>
+<li><strong>运行时统计和事件</strong>: 收集和分析运行时状态及事件可以为 Go 程序的健康情况提供高层次的概览。
+指标的抬升或下降可以帮助我们确定吞吐量、利用率和性能的变化。 </li>
 </ul>
 
 <p>
-Note: Some diagnostics tools may interfere with each other. For example, precise
-memory profiling skews CPU profiles and goroutine blocking profiling affects scheduler
-trace. Use tools in isolation to get more precise info.
+注意： 某些诊断工具可能会相互干扰。例如，精确的内存 profiling 会扭曲 CPU 画像，
+goroutine 阻塞性分析 (goroutine blocking profiling) 会影响调度器跟踪。请单独使用工具以获得更精确的信息。
 </p>
 
 <h2 id="profiling">Profiling</h2>
 
 <p>
-Profiling is useful for identifying expensive or frequently called sections
-of code. The Go runtime provides <a href="https://golang.org/pkg/runtime/pprof/">
-profiling data</a> in the format expected by the
-<a href="https://github.com/google/pprof/blob/master/doc/README.md">pprof visualization tool</a>.
-The profiling data can be collected during testing
-via <code>go</code> <code>test</code> or endpoints made available from the <a href="/pkg/net/http/pprof/">
-net/http/pprof</a> package. Users need to collect the profiling data and use pprof tools to filter
-and visualize the top code paths.
+Profiling 对识别代价高昂的或者频繁调用的代码块是非常有用的。 Go 运行时提供了满足<a href="https://github.com/google/pprof/blob/master/doc/README.md">pprof可视化工具</a>格式需要的<a href="https://golang.org/pkg/runtime/pprof/">profiling 数据</a>。 Profiling 数据能够通过运行<code>go</code> <code>test</code>或者调用包<a href="/pkg/net/http/pprof/">
+net/http/pprof</a>来进行测试时收集。 用户需要收集 profiling 数据，并使用 pprof 工具来过滤和可视化顶级代码路经。
 </p>
 
-<p>Predefined profiles provided by the <a href="/pkg/runtime/pprof">runtime/pprof</a> package:</p>
+<p>由包<a href="/pkg/runtime/pprof">runtime/pprof</a>提供的预定义 profiles ：
+</p>
 
 <ul>
 <li>
-<strong>cpu</strong>: CPU profile determines where a program spends
-its time while actively consuming CPU cycles (as opposed to while sleeping or waiting for I/O).
+<strong>cpu</strong>: CPU profile 用于确定程序在占用 CPU 期间（而不是休眠或等待 I/O 期间）时间用在哪里。
 </li>
 <li>
-<strong>heap</strong>: Heap profile reports memory allocation samples;
-used to monitor current and historical memory usage, and to check for memory leaks.
+<strong>heap</strong>: Heap profile 报告内存分配的采样数据; 用于监控当前和历史的内存使用情况，检查内存泄漏。
 </li>
 <li>
-<strong>threadcreate</strong>: Thread creation profile reports the sections
-of the program that lead the creation of new OS threads.
+<strong>threadcreate</strong>: 线程创建 profile 报告程序中引发新的系统线程创建的代码段。
 </li>
 <li>
-<strong>goroutine</strong>: Goroutine profile reports the stack traces of all current goroutines.
+<strong>goroutine</strong>: Goroutine profile 报告当前所有 goroutines 的堆栈轨迹。
 </li>
 <li>
-<strong>block</strong>: Block profile shows where goroutines block waiting on synchronization
-primitives (including timer channels). Block profile is not enabled by default;
-use <code>runtime.SetBlockProfileRate</code> to enable it.
+<strong>block</strong>: Block profile 显示 goroutines 在阻塞等待同步原语的位置（包括计时器 channel）。 Block profile 默认未启用， 可用<code>runtime.SetBlockProfileRate</code>来启用它。
 </li>
 <li>
-<strong>mutex</strong>: Mutex profile reports the lock contentions. When you think your
-CPU is not fully utilized due to a mutex contention, use this profile. Mutex profile
-is not enabled by default, see <code>runtime.SetMutexProfileFraction</code> to enable it.
+<strong>mutex</strong>: Mutex profile 报告了锁的竞争情况。 当你认为你的 CPU 因互斥竞争没有被充分利用时，使用这个 profile。 Mutex profile 默认未启用， 可用<code>runtime.SetMutexProfileFraction</code>来启用它。 
 </li>
 </ul>
 
 
-<p><strong>What other profilers can I use to profile Go programs?</strong></p>
+<p><strong>还有其他可以用来分析 Go 程序的 profile 吗？</strong></p>
 
-<p>
+<p>在Linux系统中，<a href="https://perf.wiki.kernel.org/index.php/Tutorial">perf 工具</a>可以用来分析 Go 程序。 
+Perf可以分析和回溯 cgo/SWIG 代码和内核，以便深入了解本机/内核性能瓶颈。在macOs系统中，<a href="https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/InstrumentsUserGuide/">Instruments</a>
+suite可以用来分析Go程序。
 On Linux, <a href="https://perf.wiki.kernel.org/index.php/Tutorial">perf tools</a>
 can be used for profiling Go programs. Perf can profile
 and unwind cgo/SWIG code and kernel, so it can be useful to get insights into
@@ -99,9 +81,10 @@ native/kernel performance bottlenecks. On macOS,
 suite can be used profile Go programs.
 </p>
 
-<p><strong>Can I profile my production services?</strong></p>
+<p><strong>我能分析生产环境的服务吗？Can I profile my production services?</strong></p>
 
-<p>Yes. It is safe to profile programs in production, but enabling
+<p>是的。在生产环境中分析程序是安全的，但是启用某些分析包（如CPU分析包）会增加成本。你应该会看到性能下降。在生成环境中打开探查器之前，可以通过测量它的开销来评估性能损耗。
+Yes. It is safe to profile programs in production, but enabling
 some profiles (e.g. the CPU profile) adds cost. You should expect to
 see performance downgrade. The performance penalty can be estimated
 by measuring the overhead of the profiler before turning it on in
@@ -121,7 +104,7 @@ so it is recommended to collect only a single profile at a time.
 </p>
 
 <p>
-<strong>What are the best ways to visualize the profiling data?</strong>
+<strong>What are the best ways to visualize the profiling data?可视化profiling数据的最优方式是什么？</strong>
 </p>
 
 <p>
@@ -135,16 +118,17 @@ to see them in action.
 <p>
 <img width="800" src="https://storage.googleapis.com/golangorg-assets/pprof-text.png">
 <br>
-<small>Listing of the most expensive calls as text.</small>
+<small>使用文本列出代价最高昂的调用。Listing of the most expensive calls as text.</small>
 </p>
 
 <p>
 <img width="800" src="https://storage.googleapis.com/golangorg-assets/pprof-dot.png">
 <br>
-<small>Visualization of the most expensive calls as a graph.</small>
+<small>使用图可视化代价最高昂的调用。Visualization of the most expensive calls as a graph.</small>
 </p>
 
-<p>Weblist view displays the expensive parts of the source line by line in
+<p>网页列表视图在一个HTML页面中逐行展示了源码中代价高昂的部分。在下面的示例中，<code>runtime.concatstrings</code>花费了530ms，每行代码的代价都在出现在列表中。
+Weblist view displays the expensive parts of the source line by line in
 an HTML page. In the following example, 530ms is spent in the
 <code>runtime.concatstrings</code> and cost of each line is presented
 in the listing.</p>
@@ -152,10 +136,11 @@ in the listing.</p>
 <p>
 <img width="800" src="https://storage.googleapis.com/golangorg-assets/pprof-weblist.png">
 <br>
-<small>Visualization of the most expensive calls as weblist.</small>
+<small>使用网页列表可视化代价最高昂的调用。Visualization of the most expensive calls as weblist.</small>
 </p>
 
 <p>
+另外一种可视化profiling数据的方式是<a hrProfilingef="http://www.brendangregg.com/flamegraphs.html">flame graph</a>。Flame图允许你在特定的祖先路径中移动，因此你可以放大/缩小代码的特定部分。<a href="https://github.com/google/pprof">upstream pprof</a>已经支持Flame图。
 Another way to visualize profile data is a <a href="http://www.brendangregg.com/flamegraphs.html">flame graph</a>.
 Flame graphs allow you to move in a specific ancestry path, so you can zoom
 in/out of specific sections of code.
@@ -166,18 +151,21 @@ has support for flame graphs.
 <p>
 <img width="800" src="https://storage.googleapis.com/golangorg-assets/flame.png">
 <br>
-<small>Flame graphs offers visualization to spot the most expensive code-paths.</small>
+<small>Flame图提供可视化功能，可用于发现代价最高昂的代码路经。
+Flame graphs offers visualization to spot the most expensive code-paths.</small>
 </p>
 
-<p><strong>Am I restricted to the built-in profiles?</strong></p>
+<p><strong>我只能使用内置的profiles吗？Am I restricted to the built-in profiles?</strong></p>
 
 <p>
+除了运行时提供的profiles外，Go用户还可以通过<a href="/pkg/runtime/pprof/#Profile">pprof.Profile</a>创建自定义的profiles，并使用已有的工具来检查它们。
 Additionally to what is provided by the runtime, Go users can create
 their custom profiles via <a href="/pkg/runtime/pprof/#Profile">pprof.Profile</a>
 and use the existing tools to examine them.
 </p>
 
-<p><strong>Can I serve the profiler handlers (/debug/pprof/...) on a different path and port?</strong></p>
+<p><strong>我能够用不同的路经和端口提供profiler handlers（/debug/pprof/...）服务吗？
+	Can I serve the profiler handlers (/debug/pprof/...) on a different path and port?</strong></p>
 
 <p>
 Yes. The <code>net/http/pprof</code> package registers its handlers to the default
@@ -186,6 +174,7 @@ exported from the package.
 </p>
 
 <p>
+例如，下面的示例将在:7777端口的/custom_debug_path/profile路基下提供pprof.Profile handler的服务。
 For example, the following example will serve the pprof.Profile
 handler on :7777 at /custom_debug_path/profile:
 </p>
@@ -208,9 +197,10 @@ func main() {
 </pre>
 </p>
 
-<h2 id="tracing">Tracing</h2>
+<h2 id="tracing">跟踪Tracing</h2>
 
 <p>
+跟踪是一种检测代码的方法，用于分析调用链整个生命周期中的延迟。Go提供<a href="https://godoc.org/golang.org/x/net/trace">golang.org/x/net/trace</a>包作为每个Go节点的最小跟踪后端，并提供一个带有简单仪表板的最小检测库。Go还提供了一个执行跟踪程序来跟踪间隔内的运行时事件。
 Tracing is a way to instrument code to analyze latency throughout the
 lifecycle of a chain of calls. Go provides
 <a href="https://godoc.org/golang.org/x/net/trace">golang.org/x/net/trace</a>
@@ -219,16 +209,18 @@ instrumentation library with a simple dashboard. Go also provides
 an execution tracer to trace the runtime events within an interval.
 </p>
 
-<p>Tracing enables us to:</p>
+<p>跟踪使我们能够：
+Tracing enables us to:</p>
 
 <ul>
-<li>Instrument and analyze application latency in a Go process.</li>
-<li>Measure the cost of specific calls in a long chain of calls.</li>
-<li>Figure out the utilization and performance improvements.
+<li>检测并分析Go进程中的应用程序延迟。Instrument and analyze application latency in a Go process.</li>
+<li>衡量一长串调用链路中某些特定调用的成本。Measure the cost of specific calls in a long chain of calls.</li>
+<li>弄清楚资源的利用率，并改进性能。如果不跟踪数据，瓶颈并不总是显而易见的。Figure out the utilization and performance improvements.
 Bottlenecks are not always obvious without tracing data.</li>
 </ul>
 
 <p>
+在单片机系统中，从程序的构建块中收集诊断数据相对容易。所有模块都运行在一个进程中，共享公共资源来报告日志、错误和其他诊断信息。一旦您的系统超出了单个进程，开始变得分布式，那么在响应返回给用户之前，从前端web服务器到所有后端的调用就变得更加困难。这就是分布式跟踪在检测和分析您的生产系统方面发挥重要作用的地方。
 In monolithic systems, it's relatively easy to collect diagnostic data
 from the building blocks of a program. All modules live within one
 process and share common resources to report logs, errors, and other
@@ -240,6 +232,7 @@ role to instrument and analyze your production systems.
 </p>
 
 <p>
+分布式跟踪是一种在用户请求的生命周期内分析延迟的方法。当系统是分布式的，并且传统的分析和调试工具无法扩展时，您可能需要使用分布式跟踪工具来分析用户请求和RPC的性能。
 Distributed tracing is a way to instrument code to analyze latency throughout
 the lifecycle of a user request. When a system is distributed and when
 conventional profiling and debugging tools don’t scale, you might want
@@ -247,30 +240,32 @@ to use distributed tracing tools to analyze the performance of your user
 requests and RPCs.
 </p>
 
-<p>Distributed tracing enables us to:</p>
+<p>分布式跟踪使我们能够：Distributed tracing enables us to:</p>
 
 <ul>
-<li>Instrument and profile application latency in a large system.</li>
-<li>Track all RPCs within the lifecycle of a user request and see integration issues
+<li>在大型系统中分析应用程序的延迟。Instrument and profile application latency in a large system.</li>
+<li>跟踪用户请求生命周期内的所有RPC，并查看仅在生产中可见的集成问题。Track all RPCs within the lifecycle of a user request and see integration issues
 that are only visible in production.</li>
-<li>Figure out performance improvements that can be applied to our systems.
+<li>找出可应用于系统的性能改进。在收集跟踪数据之前，许多瓶颈并不明显。Figure out performance improvements that can be applied to our systems.
 Many bottlenecks are not obvious before the collection of tracing data.</li>
 </ul>
 
-<p>The Go ecosystem provides various distributed tracing libraries per tracing system
+<p>Go生态系统为每个跟踪系统和后端不可知的Profiling系统提供各种分布式跟踪库。The Go ecosystem provides various distributed tracing libraries per tracing system
 and backend-agnostic ones.</p>
 
 
-<p><strong>Is there a way to automatically intercept each function call and create traces?</strong></p>
+<p><strong>有没有办法自动拦截每个函数调用并创建跟踪？Is there a way to automatically intercept each function call and create traces?</strong></p>
 
 <p>
+Go没有提供一种自动拦截每个函数调用并创建跟踪范围的方法。您需要手动插入代码以创建、结束和注释范围。
 Go doesn’t provide a way to automatically intercept every function call and create
 trace spans. You need to manually instrument your code to create, end, and annotate spans.
 </p>
 
-<p><strong>How should I propagate trace headers in Go libraries?</strong></p>
+<p><strong>我应该如何在Go库中传播跟踪头？How should I propagate trace headers in Go libraries?</strong></p>
 
 <p>
+可以在<a href="/pkg/context#Context"><code>context.Context</code></a>中传播跟踪标识符和标记。业界还没有规范的跟踪键或跟踪头的通用表示形式。每个跟踪提供者负责在其Go库中提供传播公用程序。
 You can propagate trace identifiers and tags in the
 <a href="/pkg/context#Context"><code>context.Context</code></a>.
 There is no canonical trace key or common representation of trace headers
@@ -279,11 +274,12 @@ utilities in their Go libraries.
 </p>
 
 <p>
-<strong>What other low-level events from the standard library or
+<strong>跟踪中还可以包括标准库或运行时的其他低级别事件？What other low-level events from the standard library or
 runtime can be included in a trace?</strong>
 </p>
 
 <p>
+标准库和运行时正在尝试公开几个附加的API，以便低级内部事件通知它们。例如，<a href="/pkg/net/http/httptrace#ClientTrace"><code>httptrace.ClientTrace</code></a>提供了可用于跟踪传出请求生命周期中低级事件的API。目前正在努力从运行时执行跟踪器中获取低级运行时事件，并允许用户定义和记录他们的用户事件。
 The standard library and runtime are trying to expose several additional APIs
 to notify on low level internal events. For example,
 <a href="/pkg/net/http/httptrace#ClientTrace"><code>httptrace.ClientTrace</code></a>
@@ -292,25 +288,29 @@ There is an ongoing effort to retrieve low-level runtime events from
 the runtime execution tracer and allow users to define and record their user events.
 </p>
 
-<h2 id="debugging">Debugging</h2>
+<h2 id="debugging">调试</h2>
 
 <p>
+调试是一个识别程序为什么会出错的过程。调试器允许我们了解程序的执行流程和当前状态。有几种类型的调试；本节只关注将调试器附加到程序和核心转储调试。
 Debugging is the process of identifying why a program misbehaves.
 Debuggers allow us to understand a program’s execution flow and current state.
 There are several styles of debugging; this section will only focus on attaching
 a debugger to a program and core dump debugging.
 </p>
 
-<p>Go users mostly use the following debuggers:</p>
+<p>Go用户主要使用以下调试器：Go users mostly use the following debuggers:</p>
 
 <ul>
 <li>
+<a href="https://github.com/derekparker/delve">Delve</a>:Delve是Go编程语言的调试器。它支持Go运行时概念和内置类型。Delve正在努力成为一个功能齐全、可靠的Go程序调试器。
 <a href="https://github.com/derekparker/delve">Delve</a>:
 Delve is a debugger for the Go programming language. It has
 support for Go’s runtime concepts and built-in types. Delve is
 trying to be a fully featured reliable debugger for Go programs.
 </li>
 <li>
+<a href="https://golang.org/doc/gdb">GDB</a>:Go通过标准Go编译器和Gccgo提供GDB支持。即使在用gccgo编译程序时，堆栈管理、线程和运行时包含了与GDB期望的执行模型有很大不同的方面，这些会混淆编辑器。尽管GDB可以用来调试Go程序，但它并不理想，并且可能会造成混乱。
+
 <a href="https://golang.org/doc/gdb">GDB</a>:
 Go provides GDB support via the standard Go compiler and Gccgo.
 The stack management, threading, and runtime contain aspects that differ
@@ -321,9 +321,10 @@ create confusion.
 </li>
 </ul>
 
-<p><strong>How well do debuggers work with Go programs?</strong></p>
+<p><strong>调试器与Go程序配合得如何？How well do debuggers work with Go programs?</strong></p>
 
 <p>
+<code>gc</code>编译器执行诸如函数内联和变量注册之类的优化。这些优化有时会使使用调试器进行调试更加困难。目前正在努力提高为优化过的二进制代码生成的DWARF信息的质量。在这些改进可用之前，我们建议在构建即将调试的代码时禁用优化。以下命令生成一个没有编译器优化的包：
 The <code>gc</code> compiler performs optimizations such as
 function inlining and variable registerization. These optimizations
 sometimes make debugging with debuggers harder. There is an ongoing
@@ -337,7 +338,7 @@ command builds a package with no compiler optimizations:
 $ go build -gcflags=all="-N -l"
 </pre>
 </p>
-
+作为改进工作的一部分，Go 1.10引入了一个新的编译器标志<code>-dwarflocationlists</code>。该标志使编译器添加位置列表，以帮助调试器处理优化过的二进制代码。以下命令使用优化构建包，但包含DWARF位置列表：
 As part of the improvement effort, Go 1.10 introduced a new compiler
 flag <code>-dwarflocationlists</code>. The flag causes the compiler to
 add location lists that helps debuggers work with optimized binaries.
@@ -350,16 +351,18 @@ $ go build -gcflags="-dwarflocationlists=true"
 </pre>
 </p>
 
-<p><strong>What’s the recommended debugger user interface?</strong></p>
+<p><strong>推荐的调试器用户界面是什么？What’s the recommended debugger user interface?</strong></p>
 
 <p>
+尽管delve和gdb都提供CLIs，但是大多数编辑集成器和IDE都提供了调试特定的用户界面。
 Even though both delve and gdb provides CLIs, most editor integrations
 and IDEs provides debugging-specific user interfaces.
 </p>
 
-<p><strong>Is it possible to do postmortem debugging with Go programs?</strong></p>
+<p><strong>可以对Go程序进行事后调试吗？Is it possible to do postmortem debugging with Go programs?</strong></p>
 
 <p>
+核心转储文件中包含正在运行进程的内存转储及其进程状态。它主要用于程序的事后调试，并在程序仍在运行时了解其状态。这两个案例使核心转储调试成为事后分析和生产服务分析的一个很好的诊断辅助工具。从Go程序中获取核心转储文件并使用delve或gdb进行调试是可行的，请参阅<a href="https://golang.org/wiki/CoreDumpDebugging">核心转储调试</a>页面以了解分步指南。
 A core dump file is a file that contains the memory dump of a running
 process and its process status. It is primarily used for post-mortem
 debugging of a program and to understand its state
@@ -371,15 +374,17 @@ use delve or gdb to debug, see the
 page for a step-by-step guide.
 </p>
 
-<h2 id="runtime">Runtime statistics and events</h2>
+<h2 id="runtime">运行时统计和事件Runtime statistics and events</h2>
 
 <p>
+运行时提供内部事件的统计信息和报告，供用户在运行时级别诊断性能和利用率问题。
 The runtime provides stats and reporting of internal events for
 users to diagnose performance and utilization problems at the
 runtime level.
 </p>
 
 <p>
+用户可以监控这些统计数据，以便更好地了解Go程序的整体健康状况和性能。一些经常被监控的统计和状态：
 Users can monitor these stats to better understand the overall
 health and performance of Go programs.
 Some frequently monitored stats and states:
@@ -387,33 +392,40 @@ Some frequently monitored stats and states:
 
 <ul>
 <li><code><a href="/pkg/runtime/#ReadMemStats">runtime.ReadMemStats</a></code>
+报告与堆分配和垃圾回收相关的度量。内存统计信息对于监控一个进程消耗了多少内存资源、进程是否能够很好地利用内存以及捕捉内存泄漏非常有用。
 reports the metrics related to heap
 allocation and garbage collection. Memory stats are useful for
 monitoring how much memory resources a process is consuming,
 whether the process can utilize memory well, and to catch
 memory leaks.</li>
 <li><code><a href="/pkg/runtime/debug/#ReadGCStats">debug.ReadGCStats</a></code>
+读取有关垃圾回收的统计信息。在查看GC停顿用多少资源时很有用。它还报告垃圾回收器停顿和停顿时间百分比的时间轴。
 reads statistics about garbage collection.
 It is useful to see how much of the resources are spent on GC pauses.
 It also reports a timeline of garbage collector pauses and pause time percentiles.</li>
 <li><code><a href="/pkg/runtime/debug/#Stack">debug.Stack</a></code>
+返回当前堆栈跟踪。堆栈跟踪有助于查看当前有多少goroutine在运行，它们在做什么，以及它们是否被阻塞。
 returns the current stack trace. Stack trace
 is useful to see how many goroutines are currently running,
 what they are doing, and whether they are blocked or not.</li>
 <li><code><a href="/pkg/runtime/debug/#WriteHeapDump">debug.WriteHeapDump</a></code>
+暂停所有goroutine的执行，并允许您将堆转储到文件中。堆转储是在给定时间点对Go进程内存做的一次快照。它包含所有分配的对象以及goroutines、finalizer等。
 suspends the execution of all goroutines
 and allows you to dump the heap to a file. A heap dump is a
 snapshot of a Go process' memory at a given time. It contains all
 allocated objects as well as goroutines, finalizers, and more.</li>
 <li><code><a href="/pkg/runtime#NumGoroutine">runtime.NumGoroutine</a></code>
+返回当前goroutine的数目。通过监控该值，可以查看是否使用了足够的goroutine，或者检测goroutine泄漏。
 returns the number of current goroutines.
 The value can be monitored to see whether enough goroutines are
 utilized, or to detect goroutine leaks.</li>
 </ul>
 
-<h3 id="execution-tracer">Execution tracer</h3>
+<h3 id="execution-tracer">执行跟踪器Execution tracer</h3>
 
-<p>Go comes with a runtime execution tracer to capture a wide range
+<p>
+Go附带了一个运行时执行跟踪器来捕获广泛的运行时事件。调度、系统调用、垃圾回收、堆大小和其他事件由运行时收集，并可通过go工具跟踪进行可视化。执行跟踪器是一种检测延迟和利用率问题的工具。您可以检查CPU的利用率，以及什么时候网络或系统调用引起了goroutine抢占。
+Go comes with a runtime execution tracer to capture a wide range
 of runtime events. Scheduling, syscall, garbage collections,
 heap size, and other events are collected by runtime and available
 for visualization by the go tool trace. Execution tracer is a tool
@@ -421,14 +433,14 @@ to detect latency and utilization problems. You can examine how well
 the CPU is utilized, and when networking or syscalls are a cause of
 preemption for the goroutines.</p>
 
-<p>Tracer is useful to:</p>
+<p>跟踪器可用于：Tracer is useful to:</p>
 <ul>
-<li>Understand how your goroutines execute.</li>
-<li>Understand some of the core runtime events such as GC runs.</li>
-<li>Identify poorly parallelized execution.</li>
+<li>了解你的goroutines是如何执行的。Understand how your goroutines execute.</li>
+<li>了解一些核心运行时事件，如GC运行。Understand some of the core runtime events such as GC runs.</li>
+<li>识别并行性差的执行。Identify poorly parallelized execution.</li>
 </ul>
 
-<p>However, it is not great for identifying hot spots such as
+<p>但是，对于识别热点（如分析内存或CPU使用过多的原因）来说，这并不是什么好方法。首先使用profiling工具来定位这些问题。However, it is not great for identifying hot spots such as
 analyzing the cause of excessive memory or CPU usage.
 Use profiling tools instead first to address them.</p>
 
@@ -436,37 +448,49 @@ Use profiling tools instead first to address them.</p>
 <img width="800" src="https://storage.googleapis.com/golangorg-assets/tracer-lock.png">
 </p>
 
-<p>Above, the go tool trace visualization shows the execution started
+<p>在上图中，go工具跟踪可视化显示开始时运行得很好，然后就序列化了。这表明共享资源可能存在锁争用，从而造成瓶颈。
+
+
+
+Above, the go tool trace visualization shows the execution started
 fine, and then it became serialized. It suggests that there might
 be lock contention for a shared resource that creates a bottleneck.</p>
 
-<p>See <a href="https://golang.org/cmd/trace/"><code>go</code> <code>tool</code> <code>trace</code></a>
+<p>请参阅<a href="https://golang.org/cmd/trace/"><code>go</code> <code>tool</code> <code>trace</code></a>以收集和分析运行时跟踪。
+See <a href="https://golang.org/cmd/trace/"><code>go</code> <code>tool</code> <code>trace</code></a>
 to collect and analyze runtime traces.
 </p>
 
 <h3 id="godebug">GODEBUG</h3>
 
-<p>Runtime also emits events and information if
+<p>
+如果<a href="https://golang.org/pkg/runtime/#hdr-Environment_Variables">GODEBUG</a>环境变量按照要求进行设置，运行时也会提交事件和信息。
+Runtime also emits events and information if
 <a href="https://golang.org/pkg/runtime/#hdr-Environment_Variables">GODEBUG</a>
 environmental variable is set accordingly.</p>
 
 <ul>
-<li>GODEBUG=gctrace=1 prints garbage collector events at
+<li>GODEBUG=gctrace=1 在每次回收时打印垃圾回收器事件，汇总回收的内存量和停顿的长度。
+prints garbage collector events at
 each collection, summarizing the amount of memory collected
 and the length of the pause.</li>
-<li>GODEBUG=inittrace=1 prints a summary of execution time and memory allocation
+<li>GODEBUG=inittrace=1 打印已完成包初始化工作的执行时间和内存分配信息的摘要。
+prints a summary of execution time and memory allocation
 information for completed package initialization work.</li>
-<li>GODEBUG=schedtrace=X prints scheduling events every X milliseconds.</li>
+<li>GODEBUG=schedtrace=X 每隔X毫秒打印一次调度事件。
+prints scheduling events every X milliseconds.</li>
 </ul>
 
-<p>The GODEBUG environmental variable can be used to disable use of
+<p>GODEBUG环境变量可用于在标准库和运行时中禁用指令集扩展。
+The GODEBUG environmental variable can be used to disable use of
 instruction set extensions in the standard library and runtime.</p>
 
 <ul>
-<li>GODEBUG=cpu.all=off disables the use of all optional
+<li>GODEBUG=cpu.all=off 禁用所有可选指令集扩展。disables the use of all optional
 instruction set extensions.</li>
-<li>GODEBUG=cpu.<em>extension</em>=off disables use of instructions from the
+<li>GODEBUG=cpu.<em>extension</em>=off 禁用指定的指令集扩展中的指令。disables use of instructions from the
 specified instruction set extension.<br>
+<em>extension</em>是指令集扩展的小写名称，如<em>sse41</em>或<em>avx</em>。
 <em>extension</em> is the lower case name for the instruction set extension
 such as <em>sse41</em> or <em>avx</em>.</li>
 </ul>
